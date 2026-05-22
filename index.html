@@ -2,59 +2,23 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>TTS Demo</title>
-<style>
-  body {
-    background: #111;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    flex-direction: column;
-  }
-  button {
-    padding: 15px 30px;
-    font-size: 20px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: #4a8cff;
-    color: white;
-  }
-</style>
+<title>Мужской голос TTS</title>
 </head>
 <body>
 
-<h1>Озвучка по кнопке</h1>
 <button id="speakBtn">Озвучить</button>
 
 <script>
-let maleVoice = null;
-
-function loadVoices() {
-    const voices = speechSynthesis.getVoices();
-
-    maleVoice = voices.find(v =>
-        v.lang.startsWith("ru") &&
-        (v.name.toLowerCase().includes("male") ||
-         v.name.toLowerCase().includes("dmitry") ||
-         v.name.toLowerCase().includes("alex") ||
-         v.name.toLowerCase().includes("mikhail"))
-    );
-
-    if (!maleVoice) {
-        maleVoice = voices.find(v => v.lang.startsWith("ru"));
-    }
+function speakMale() {
+  const voices = speechSynthesis.getVoices();
+  const pavel = voices.find(v => v.name.includes("Pavel"));
+  const utter = new SpeechSynthesisUtterance("Привет! Это мужской голос Павел.");
+  if (pavel) utter.voice = pavel;
+  speechSynthesis.speak(utter);
 }
 
-speechSynthesis.onvoiceschanged = loadVoices;
-
-document.getElementById("speakBtn").onclick = () => {
-    const utter = new SpeechSynthesisUtterance("Привет! Это мужской голос.");
-    if (maleVoice) utter.voice = maleVoice;
-    speechSynthesis.speak(utter);
+speechSynthesis.onvoiceschanged = () => {
+  document.getElementById("speakBtn").onclick = speakMale;
 };
 </script>
 
