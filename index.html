@@ -2,25 +2,62 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Мужской голос TTS</title>
+<title>Нейросетевой мужской голос</title>
+<script type="module">
+import { EdgeTTSBrowser } from "https://cdn.jsdelivr.net/npm/edge-tts-browser/+esm";
+
+let tts = null;
+
+async function initTTS() {
+    tts = new EdgeTTSBrowser();
+    await tts.init();
+}
+
+async function speak() {
+    if (!tts) return;
+
+    const text = "Привет! Это современный мужской нейросетевой голос Дмитрий.";
+
+    const blob = await tts.ttsToBlob({
+        text,
+        voice: "ru-RU-DmitryNeural"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.play();
+}
+
+window.onload = initTTS;
+window.speak = speak;
+</script>
+
+<style>
+body {
+    background: #111;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+}
+button {
+    padding: 15px 30px;
+    font-size: 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #4a8cff;
+    color: white;
+}
+</style>
 </head>
 <body>
 
-<button id="speakBtn">Озвучить</button>
-
-<script>
-function speakMale() {
-  const voices = speechSynthesis.getVoices();
-  const pavel = voices.find(v => v.name.includes("Pavel"));
-  const utter = new SpeechSynthesisUtterance("Привет! Это мужской голос Павел.");
-  if (pavel) utter.voice = pavel;
-  speechSynthesis.speak(utter);
-}
-
-speechSynthesis.onvoiceschanged = () => {
-  document.getElementById("speakBtn").onclick = speakMale;
-};
-</script>
+<h1>Нейросетевой мужской голос</h1>
+<button onclick="speak()">Озвучить</button>
 
 </body>
 </html>
