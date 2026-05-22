@@ -1,59 +1,768 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Нейросетевой мужской голос (офлайн)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Игра "Дурак" | 36 карт | против ИИ</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
 
-<script src="https://cdn.jsdelivr.net/gh/coqui-ai/TTS@dev/web/dist/tts.min.js"></script>
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', 'Trebuchet MS', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
 
-<style>
-body {
-    background: #111;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    flex-direction: column;
-}
-button {
-    padding: 15px 30px;
-    font-size: 20px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: #4a8cff;
-    color: white;
-}
-</style>
+        /* игровое поле */
+        .game-container {
+            background: #2a6b3c;
+            border-radius: 48px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.3);
+            padding: 20px 25px 30px;
+            width: 100%;
+            max-width: 1300px;
+            transition: all 0.2s;
+        }
+
+        /* зоны */
+        .opponent-area {
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            border-radius: 32px;
+            padding: 15px 10px;
+            margin-bottom: 20px;
+        }
+
+        .table-area {
+            background: #1e4d2e;
+            border-radius: 60px;
+            margin: 20px 0;
+            padding: 25px 15px;
+            min-height: 190px;
+            box-shadow: inset 0 0 0 2px #6f9e7c, 0 8px 18px rgba(0,0,0,0.3);
+        }
+
+        .player-area {
+            background: rgba(0,0,0,0.2);
+            border-radius: 32px;
+            padding: 15px 10px;
+            margin-top: 20px;
+        }
+
+        .cards-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        /* стиль карт */
+        .card {
+            width: 88px;
+            height: 120px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: -2px 3px 8px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 26px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid #cdb38c;
+        }
+
+        .card.player-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 18px rgba(0,0,0,0.4);
+        }
+
+        .card.ai-card {
+            background: repeating-linear-gradient(45deg, #2c3e66, #2c3e66 12px, #1f2c4a 12px, #1f2c4a 24px);
+            border: 1px solid #ffd966;
+            cursor: default;
+            color: #efcba1;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #00000066;
+        }
+
+        .card.ai-card::after {
+            content: "🃟";
+            font-size: 48px;
+            opacity: 0.9;
+        }
+
+        .card.ai-card span {
+            display: none;
+        }
+
+        .card-value {
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .card-suit {
+            font-size: 38px;
+            line-height: 1;
+        }
+
+        /* карты на столе */
+        .table-card {
+            background: #fef7e0;
+            width: 80px;
+            height: 108px;
+            font-size: 22px;
+        }
+
+        .attack-card {
+            border-left: 4px solid #ff7b2c;
+        }
+        .defense-card {
+            border-right: 4px solid #2c9b5e;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #102c1b;
+            border-radius: 60px;
+            padding: 8px 24px;
+            margin-bottom: 20px;
+            color: #f9e6b3;
+            font-weight: bold;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .trump {
+            background: #e6b422;
+            color: #2d1b00;
+            padding: 6px 20px;
+            border-radius: 36px;
+            font-size: 1.3rem;
+            box-shadow: inset 0 1px 3px #ffea9e, 0 2px 5px black;
+        }
+
+        .status {
+            background: #000000aa;
+            backdrop-filter: blur(5px);
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .deck-info {
+            background: #2c5238;
+            padding: 6px 18px;
+            border-radius: 30px;
+        }
+
+        button {
+            background: #f5bc70;
+            border: none;
+            font-weight: bold;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 2px 5px black;
+        }
+        button:active {
+            transform: scale(0.96);
+        }
+        .end-turn-btn {
+            background: #d68b3c;
+            color: white;
+        }
+
+        h3 {
+            margin: 5px 0;
+            color: #ffefbf;
+            text-shadow: 1px 1px 0 #1f3f25;
+        }
+
+        @media (max-width: 700px) {
+            .card { width: 68px; height: 94px; font-size: 20px; }
+            .table-card { width: 62px; height: 88px; }
+            .cards-wrapper { gap: 8px; }
+        }
+    </style>
 </head>
 <body>
+<div class="game-container">
+    <div class="info-panel">
+        <div class="trump" id="trumpDisplay">♠ Козырь: ♠</div>
+        <div class="deck-info">📚 Колода: <span id="deckCount">36</span></div>
+        <div class="status" id="gameStatus">🎲 Ход: Игрок</div>
+        <button id="resetGameBtn">🔄 Новая игра</button>
+    </div>
 
-<h1>Современный мужской голос (офлайн)</h1>
-<button id="speakBtn">Озвучить</button>
+    <!-- Поле противника -->
+    <div class="opponent-area">
+        <h3>🤖 ПРОТИВНИК (6 карт)</h3>
+        <div class="cards-wrapper" id="aiHandArea">
+            <!-- карты AI рубашками -->
+        </div>
+    </div>
+
+    <!-- Игровой стол (атака/защита) -->
+    <div class="table-area">
+        <div style="text-align: center; font-weight: bold; color:#ffecb3;">⚔️ СТОЛ ⚔️</div>
+        <div class="cards-wrapper" id="tableCardsArea">
+            <!-- пары карт -->
+        </div>
+    </div>
+
+    <!-- Мои карты -->
+    <div class="player-area">
+        <h3>🧑‍🎤 ВАШИ КАРТЫ</h3>
+        <div class="cards-wrapper" id="playerHandArea"></div>
+        <div style="display: flex; justify-content: center; margin-top: 12px;">
+            <button id="passButton" class="end-turn-btn">🚶 Пас / закончить ход</button>
+        </div>
+    </div>
+</div>
 
 <script>
-let tts;
-
-async function init() {
-    tts = new TTS({
-        modelUrl: "https://huggingface.co/spaces/Plachta/VITS-Umamusume-RU/resolve/main/model.onnx",
-        configUrl: "https://huggingface.co/spaces/Plachta/VITS-Umamusume-RU/resolve/main/config.json",
-        vocoderUrl: "https://huggingface.co/spaces/Plachta/VITS-Umamusume-RU/resolve/main/vocoder.onnx"
-    });
-
-    await tts.init();
-}
-
-document.getElementById("speakBtn").onclick = async () => {
-    const audio = await tts.speak("Привет! Это современный мужской голос.");
-    const url = URL.createObjectURL(new Blob([audio], { type: "audio/wav" }));
-    new Audio(url).play();
-};
-
-init();
+    // ---------- НАСТРОЙКИ ИГРЫ ----------
+    const SUITS = ['♥', '♦', '♣', '♠'];
+    const RANKS = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const RANK_VALUE = { '6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14 };
+    
+    let deck = [];          // вся колода объектов {rank, suit, value}
+    let trumpSuit = '♠';
+    let playerHand = [];
+    let aiHand = [];
+    let tableCards = [];    // [{attack:card, defense:card|null}]
+    let currentTurn = 'player'; // 'player' или 'ai'
+    let phase = 'attack';        // 'attack' (ожидание атаки от currentTurn) или 'defense' (ожидание защиты от соперника)
+    let gameOver = false;
+    let winner = null;
+    
+    // вспомогательные DOM
+    const trumpDisplay = document.getElementById('trumpDisplay');
+    const deckCountSpan = document.getElementById('deckCount');
+    const gameStatusSpan = document.getElementById('gameStatus');
+    const aiHandDiv = document.getElementById('aiHandArea');
+    const playerHandDiv = document.getElementById('playerHandArea');
+    const tableDiv = document.getElementById('tableCardsArea');
+    const resetBtn = document.getElementById('resetGameBtn');
+    const passBtn = document.getElementById('passButton');
+    
+    // ---------- ИНИЦИАЛИЗАЦИЯ КОЛОДЫ ----------
+    function buildDeck() {
+        const newDeck = [];
+        for (let suit of SUITS) {
+            for (let rank of RANKS) {
+                newDeck.push({
+                    rank: rank,
+                    suit: suit,
+                    value: RANK_VALUE[rank]
+                });
+            }
+        }
+        return shuffle(newDeck);
+    }
+    
+    function shuffle(deckArray) {
+        for (let i = deckArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deckArray[i], deckArray[j]] = [deckArray[j], deckArray[i]];
+        }
+        return deckArray;
+    }
+    
+    // определить козырь (верхняя карта колоды)
+    function setTrumpFromDeck() {
+        if (deck.length === 0) return;
+        trumpSuit = deck[deck.length-1].suit;
+        trumpDisplay.innerText = `🃟 Козырь: ${trumpSuit}`;
+    }
+    
+    // раздача карт: по 6 игроку и AI
+    function dealCards() {
+        playerHand = [];
+        aiHand = [];
+        for (let i = 0; i < 6; i++) {
+            if (deck.length) playerHand.push(deck.pop());
+            if (deck.length) aiHand.push(deck.pop());
+        }
+    }
+    
+    // пополнение рук до 6 из колоды
+    function refillHands() {
+        while (playerHand.length < 6 && deck.length > 0) {
+            playerHand.push(deck.pop());
+        }
+        while (aiHand.length < 6 && deck.length > 0) {
+            aiHand.push(deck.pop());
+        }
+        updateUI();
+    }
+    
+    // сброс стола в "отбой" (просто очищаем)
+    function clearTableToDiscard() {
+        tableCards = [];
+        updateTableDisplay();
+    }
+    
+    // проверка победных условий
+    function checkGameOver() {
+        if (playerHand.length === 0) {
+            gameOver = true;
+            winner = 'player';
+            gameStatusSpan.innerText = '🏆 ВЫ ПОБЕДИЛИ! 🏆';
+        } else if (aiHand.length === 0) {
+            gameOver = true;
+            winner = 'ai';
+            gameStatusSpan.innerText = '😵 ВЫ ДУРАК... ИИ победил.';
+        }
+        if (gameOver) {
+            passBtn.disabled = true;
+        } else {
+            passBtn.disabled = (currentTurn !== 'player' || phase !== 'attack');
+        }
+        updateUI();
+        return gameOver;
+    }
+    
+    // ВЗЯТИЕ КАРТ защитником (все карты со стола идут в руку защитника)
+    function takeAllCards(defender) {
+        for (let round of tableCards) {
+            if (round.attack) defender.push(round.attack);
+            if (round.defense) defender.push(round.defense);
+        }
+        clearTableToDiscard();
+    }
+    
+    // Успешный отбой: карты уходят в "отбой" (просто удаляем)
+    function successfulDefense() {
+        clearTableToDiscard();
+    }
+    
+    // смена хода (после завершения всей атаки/защиты)
+    function switchTurn() {
+        currentTurn = (currentTurn === 'player') ? 'ai' : 'player';
+        phase = 'attack';
+        gameStatusSpan.innerText = currentTurn === 'player' ? '🎲 Ваш ход (атака)' : '🤖 Ход ИИ (атака)';
+        if (!gameOver && currentTurn === 'ai' && phase === 'attack') {
+            setTimeout(() => aiMakeAttack(), 300);
+        }
+        passBtn.disabled = (currentTurn !== 'player' || phase !== 'attack');
+        updateUI();
+    }
+    
+    // Закончить ход (пас) - когда атакующий не хочет/не может подкинуть
+    function finishAttackAndChangeTurn() {
+        if (gameOver) return;
+        if (currentTurn === 'player' && phase === 'attack') {
+            // просто передаем ход, но если на столе есть карты? По правилам: если атакующий пасует и защитник уже отбил или взял неполностью?
+            // здесь вызывается только если нет незащищенных карт? Сделаем: если на столе есть атака без защиты, то нельзя пасовать. Но по кнопке пас будем проверять
+            if (tableCards.some(r => r.defense === null)) {
+                gameStatusSpan.innerText = "❌ Сначала добейте защиту! Или защититесь!";
+                return;
+            }
+            // всё отбито - передаём ход защитнику
+            successfulDefense();
+            switchTurn();
+            refillHands();
+            checkGameOver();
+            updateUI();
+        } else if (currentTurn === 'ai' && phase === 'attack') {
+            // ИИ пасует - аналогично
+            if (tableCards.some(r => r.defense === null)) return;
+            successfulDefense();
+            switchTurn();
+            refillHands();
+            checkGameOver();
+            updateUI();
+        }
+    }
+    
+    // Может ли атакующий подкинуть карту (по номиналу на столе)
+    function canThrowMore(attackerHand) {
+        if (tableCards.length === 0) return true;
+        const ranksOnTable = new Set();
+        for (let round of tableCards) {
+            if (round.attack) ranksOnTable.add(round.attack.rank);
+            if (round.defense) ranksOnTable.add(round.defense.rank);
+        }
+        return attackerHand.some(card => ranksOnTable.has(card.rank));
+    }
+    
+    // Проверка, бьет ли карта defense карту attack (учитывая козыри)
+    function canBeat(attackCard, defenseCard) {
+        // если масти одинаковые, сравниваем значения
+        if (defenseCard.suit === attackCard.suit) {
+            return defenseCard.value > attackCard.value;
+        }
+        // если защита козырь, а атака не козырь -> бьет
+        if (defenseCard.suit === trumpSuit && attackCard.suit !== trumpSuit) {
+            return true;
+        }
+        return false;
+    }
+    
+    // Логика ИИ для защиты: ищет лучшую карту для отбоя
+    function aiFindDefense(attackCard) {
+        let bestCard = null;
+        // Сначала подходящие по масти (старше)
+        for (let card of aiHand) {
+            if (card.suit === attackCard.suit && card.value > attackCard.value) {
+                if (!bestCard || card.value < bestCard.value) bestCard = card;
+            }
+        }
+        if (!bestCard) {
+            // ищем козырь (кроме случая когда атака тоже козырь и выше)
+            for (let card of aiHand) {
+                if (card.suit === trumpSuit && (attackCard.suit !== trumpSuit || card.value > attackCard.value)) {
+                    if (!bestCard || card.value < bestCard.value) bestCard = card;
+                }
+            }
+        }
+        return bestCard;
+    }
+    
+    // ИИ делает защиту (от текущей атаки в первом незащищенном раунде)
+    function aiDefend() {
+        if (gameOver) return;
+        if (currentTurn !== 'ai' || phase !== 'defense') return;
+        // найти первую незащищенную атаку
+        const unprotectedIndex = tableCards.findIndex(r => r.defense === null);
+        if (unprotectedIndex === -1) {
+            // все защищены - можно подкинуть или сменить ход
+            afterDefenseRound();
+            return;
+        }
+        const attackCard = tableCards[unprotectedIndex].attack;
+        const defenseCard = aiFindDefense(attackCard);
+        if (defenseCard) {
+            // отбивает
+            const indexInHand = aiHand.findIndex(c => c === defenseCard);
+            if (indexInHand !== -1) aiHand.splice(indexInHand, 1);
+            tableCards[unprotectedIndex].defense = defenseCard;
+            updateTableDisplay();
+            updateUI();
+            // после успешного отбоя проверяем, все ли отбиты
+            if (tableCards.every(r => r.defense !== null)) {
+                afterDefenseRound();
+            } else {
+                // если есть еще незащищенные, ИИ защищает их автоматически через рекурсию?
+                setTimeout(() => aiDefend(), 100);
+            }
+        } else {
+            // не может отбить - берет все карты
+            takeAllCards(aiHand);
+            updateUI();
+            // ход остается за атакующим (игроком)
+            currentTurn = 'player';
+            phase = 'attack';
+            gameStatusSpan.innerText = '🎲 ИИ взял карты. Ваш ход!';
+            refillHands();
+            checkGameOver();
+            updateUI();
+            if (!gameOver && currentTurn === 'player') passBtn.disabled = false;
+        }
+    }
+    
+    // после того как все атаки отбиты - либо подкидывание, либо переход хода
+    function afterDefenseRound() {
+        if (gameOver) return;
+        const attacker = currentTurn === 'ai' ? 'ai' : 'player'; // кто атаковал
+        const attackerHand = attacker === 'player' ? playerHand : aiHand;
+        if (canThrowMore(attackerHand) && tableCards.length < 12) {
+            // можно подкинуть
+            if (attacker === 'player') {
+                phase = 'attack'; // игрок-атакующий подкидывает новые карты
+                gameStatusSpan.innerText = '✨ Подкиньте карту (совпадающий номинал) ✨';
+                passBtn.disabled = false;
+                updateUI();
+            } else {
+                // ИИ подкидывает
+                phase = 'attack';
+                setTimeout(() => aiThrowExtra(), 400);
+            }
+        } else {
+            // подкинуть нечего - ход переходит защитнику
+            successfulDefense();
+            switchTurn();
+            refillHands();
+            checkGameOver();
+            updateUI();
+        }
+    }
+    
+    // ИИ подкидывает карту
+    function aiThrowExtra() {
+        if (gameOver) return;
+        if (currentTurn !== 'ai' || phase !== 'attack') return;
+        const attackerHand = aiHand;
+        const ranksOnTable = new Set();
+        for (let round of tableCards) {
+            ranksOnTable.add(round.attack.rank);
+            if (round.defense) ranksOnTable.add(round.defense.rank);
+        }
+        const possibleCards = attackerHand.filter(c => ranksOnTable.has(c.rank));
+        if (possibleCards.length > 0 && tableCards.length < 12) {
+            const cardToThrow = possibleCards[0];
+            const cardIndex = aiHand.findIndex(c => c === cardToThrow);
+            if (cardIndex !== -1) aiHand.splice(cardIndex, 1);
+            tableCards.push({ attack: cardToThrow, defense: null });
+            updateUI();
+            phase = 'defense';
+            gameStatusSpan.innerText = '🤖 ИИ атакует! Вы защищайтесь...';
+            passBtn.disabled = true;
+            setTimeout(() => playerDefenseAgainstAI(), 300);
+        } else {
+            // не может подкинуть, завершаем ход
+            finishAttackAndChangeTurn();
+        }
+    }
+    
+    // Защита ИГРОКА от атак ИИ
+    async function playerDefenseAgainstAI() {
+        if (gameOver) return;
+        if (currentTurn !== 'ai' || phase !== 'defense') return;
+        // ищем незащищенную карту на столе (атакована ИИ)
+        const unprotected = tableCards.findIndex(r => r.defense === null);
+        if (unprotected === -1) {
+            afterDefenseRound();
+            return;
+        }
+        const attackCard = tableCards[unprotected].attack;
+        gameStatusSpan.innerText = `⚠️ Защититесь от ${attackCard.rank}${attackCard.suit} ⚠️`;
+        updateUI();
+        // ожидаем клик по карте игрока
+    }
+    
+    // Игрок пытается защититься (вызов из обработчика)
+    function playerTryDefend(card) {
+        if (gameOver) return;
+        if (currentTurn !== 'ai' || phase !== 'defense') return false;
+        const unprotectedIndex = tableCards.findIndex(r => r.defense === null);
+        if (unprotectedIndex === -1) return false;
+        const attackCard = tableCards[unprotectedIndex].attack;
+        if (canBeat(attackCard, card)) {
+            // убираем карту из руки
+            const idx = playerHand.findIndex(c => c === card);
+            if (idx !== -1) playerHand.splice(idx, 1);
+            tableCards[unprotectedIndex].defense = card;
+            updateUI();
+            if (tableCards.every(r => r.defense !== null)) {
+                afterDefenseRound();
+            } else {
+                gameStatusSpan.innerText = `🛡️ Отбито! Защититесь от следующей атаки.`;
+                setTimeout(() => { if(!gameOver) playerDefenseAgainstAI(); }, 100);
+            }
+            return true;
+        } else {
+            gameStatusSpan.innerText = "❌ Нельзя побить! Выберите старшую масть или козырь!";
+            return false;
+        }
+    }
+    
+    // ИИ делает атаку (первая карта)
+    function aiMakeAttack() {
+        if (gameOver) return;
+        if (currentTurn !== 'ai' || phase !== 'attack') return;
+        if (tableCards.length > 0) return;
+        if (aiHand.length === 0) {
+            checkGameOver();
+            return;
+        }
+        const randomCard = aiHand[Math.floor(Math.random() * aiHand.length)];
+        const idx = aiHand.findIndex(c => c === randomCard);
+        aiHand.splice(idx, 1);
+        tableCards.push({ attack: randomCard, defense: null });
+        phase = 'defense';
+        updateUI();
+        gameStatusSpan.innerText = '🤖 ИИ атакует! Ваш ход защиты!';
+        passBtn.disabled = true;
+        setTimeout(() => playerDefenseAgainstAI(), 100);
+    }
+    
+    // Игрок атакует (первая карта или подкидывание)
+    function playerAttack(card) {
+        if (gameOver) return;
+        if (currentTurn !== 'player') {
+            gameStatusSpan.innerText = "Сейчас не ваш ход атаки";
+            return;
+        }
+        if (phase !== 'attack') {
+            gameStatusSpan.innerText = "Сейчас фаза защиты!";
+            return;
+        }
+        // если стол пуст - атака первой картой
+        if (tableCards.length === 0) {
+            const idx = playerHand.findIndex(c => c === card);
+            if (idx !== -1) playerHand.splice(idx, 1);
+            tableCards.push({ attack: card, defense: null });
+            phase = 'defense';
+            updateUI();
+            gameStatusSpan.innerText = "🤖 ИИ защищается...";
+            passBtn.disabled = true;
+            setTimeout(() => aiDefend(), 200);
+            return;
+        }
+        // иначе подкидывание: проверяем совпадение рангов
+        const ranksOnTable = new Set();
+        for (let r of tableCards) {
+            ranksOnTable.add(r.attack.rank);
+            if (r.defense) ranksOnTable.add(r.defense.rank);
+        }
+        if (!ranksOnTable.has(card.rank)) {
+            gameStatusSpan.innerText = "❗ Можно подкидывать только карты тех же номиналов, что на столе!";
+            return;
+        }
+        if (tableCards.length >= 12) {
+            gameStatusSpan.innerText = "Стол заполнен, больше подкинуть нельзя.";
+            return;
+        }
+        const idx = playerHand.findIndex(c => c === card);
+        if (idx !== -1) playerHand.splice(idx, 1);
+        tableCards.push({ attack: card, defense: null });
+        updateUI();
+        phase = 'defense';
+        gameStatusSpan.innerText = "ИИ защищается от новой атаки...";
+        passBtn.disabled = true;
+        setTimeout(() => aiDefend(), 200);
+    }
+    
+    // ---------- ОТРИСОВКА UI ----------
+    function updateUI() {
+        // отобразить карты игрока
+        playerHandDiv.innerHTML = '';
+        playerHand.forEach(card => {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'card player-card';
+            cardDiv.innerHTML = `<div class="card-value">${card.rank}</div><div class="card-suit">${card.suit}</div>`;
+            if (!gameOver && ((currentTurn === 'player' && phase === 'attack') || (currentTurn === 'ai' && phase === 'defense'))) {
+                cardDiv.style.cursor = 'pointer';
+                cardDiv.onclick = () => {
+                    if (currentTurn === 'player' && phase === 'attack') playerAttack(card);
+                    else if (currentTurn === 'ai' && phase === 'defense') playerTryDefend(card);
+                };
+            } else {
+                cardDiv.style.cursor = 'default';
+                cardDiv.onclick = null;
+            }
+            playerHandDiv.appendChild(cardDiv);
+        });
+        
+        // AI рубашки (6 карт, даже если в руке меньше, показываем 6 заглушек)
+        aiHandDiv.innerHTML = '';
+        let aiCount = aiHand.length;
+        for (let i = 0; i < 6; i++) {
+            const back = document.createElement('div');
+            back.className = 'card ai-card';
+            back.innerHTML = '<span></span>';
+            aiHandDiv.appendChild(back);
+        }
+        
+        // стол
+        updateTableDisplay();
+        deckCountSpan.innerText = deck.length;
+        if (!gameOver && currentTurn === 'player' && phase === 'attack') passBtn.disabled = false;
+        else if (!gameOver && currentTurn === 'player' && phase === 'defense') passBtn.disabled = true;
+        else if (!gameOver && currentTurn === 'ai') passBtn.disabled = true;
+        else passBtn.disabled = true;
+        
+        if (gameOver) passBtn.disabled = true;
+    }
+    
+    function updateTableDisplay() {
+        tableDiv.innerHTML = '';
+        for (let i=0; i<tableCards.length; i++) {
+            const round = tableCards[i];
+            const pairDiv = document.createElement('div');
+            pairDiv.style.display = 'flex';
+            pairDiv.style.gap = '6px';
+            pairDiv.style.alignItems = 'center';
+            pairDiv.style.background = '#2c5a35';
+            pairDiv.style.padding = '6px';
+            pairDiv.style.borderRadius = '20px';
+            // атака
+            const attackDiv = document.createElement('div');
+            attackDiv.className = 'card table-card attack-card';
+            attackDiv.innerHTML = `<div class="card-value">${round.attack.rank}</div><div class="card-suit">${round.attack.suit}</div>`;
+            pairDiv.appendChild(attackDiv);
+            // защита если есть
+            if (round.defense) {
+                const defDiv = document.createElement('div');
+                defDiv.className = 'card table-card defense-card';
+                defDiv.innerHTML = `<div class="card-value">${round.defense.rank}</div><div class="card-suit">${round.defense.suit}</div>`;
+                pairDiv.appendChild(defDiv);
+            } else {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.style.width = '80px';
+                emptyDiv.style.height = '108px';
+                emptyDiv.style.background = '#3e2a1f66';
+                emptyDiv.style.borderRadius = '12px';
+                emptyDiv.style.border = '1px dashed gold';
+                emptyDiv.innerText = '?';
+                emptyDiv.style.display = 'flex';
+                emptyDiv.style.alignItems = 'center';
+                emptyDiv.style.justifyContent = 'center';
+                pairDiv.appendChild(emptyDiv);
+            }
+            tableDiv.appendChild(pairDiv);
+        }
+    }
+    
+    // новая игра
+    function newGame() {
+        deck = buildDeck();
+        setTrumpFromDeck();
+        dealCards();
+        tableCards = [];
+        currentTurn = 'player';
+        phase = 'attack';
+        gameOver = false;
+        winner = null;
+        gameStatusSpan.innerText = '🎲 Ваш ход (атака)';
+        passBtn.disabled = false;
+        refillHands(); // добор до 6 если колода есть, также обновит UI
+        updateUI();
+        if (currentTurn === 'player') passBtn.disabled = false;
+    }
+    
+    // событие пас
+    passBtn.onclick = () => {
+        if (gameOver) return;
+        if (currentTurn === 'player' && phase === 'attack') {
+            if (tableCards.length === 0) {
+                gameStatusSpan.innerText = "Нет карт на столе, начните атаку!";
+                return;
+            }
+            if (tableCards.some(r => r.defense === null)) {
+                gameStatusSpan.innerText = "Нельзя пасовать, пока защитник не отбил все карты!";
+                return;
+            }
+            finishAttackAndChangeTurn();
+        } else {
+            gameStatusSpan.innerText = "Сейчас не фаза паса!";
+        }
+    };
+    
+    resetBtn.onclick = () => { newGame(); };
+    
+    newGame();
 </script>
-
 </body>
 </html>
