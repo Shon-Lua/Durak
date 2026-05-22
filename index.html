@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Современный мужской голос</title>
-<script src="https://js.puter.com/v2/"></script>
+<title>Нейросетевой мужской голос (офлайн)</title>
+
+<script src="https://cdn.jsdelivr.net/gh/coqui-ai/TTS@dev/web/dist/tts.min.js"></script>
 
 <style>
 body {
@@ -29,14 +30,29 @@ button {
 </head>
 <body>
 
-<h1>Нейросетевой мужской голос</h1>
+<h1>Современный мужской голос (офлайн)</h1>
 <button id="speakBtn">Озвучить</button>
 
 <script>
+let tts;
+
+async function init() {
+    tts = new TTS({
+        modelUrl: "https://huggingface.co/spaces/Plachta/VITS-Umamusume-RU/resolve/main/model.onnx",
+        configUrl: "https://huggingface.co/spaces/Plachta/VITS-Umamusume-RU/resolve/main/config.json",
+        vocoderUrl: "https://huggingface.co/spaces/Plachta/VITS-Umamusume-RU/resolve/main/vocoder.onnx"
+    });
+
+    await tts.init();
+}
+
 document.getElementById("speakBtn").onclick = async () => {
-    const audio = await puter.ai.tts("Привет! Это современный мужской голос.");
-    new Audio(audio.url).play();
+    const audio = await tts.speak("Привет! Это современный мужской голос.");
+    const url = URL.createObjectURL(new Blob([audio], { type: "audio/wav" }));
+    new Audio(url).play();
 };
+
+init();
 </script>
 
 </body>
