@@ -2,35 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Нейросетевой мужской голос</title>
-<script type="module">
-import { EdgeTTSBrowser } from "https://cdn.jsdelivr.net/npm/edge-tts-browser/+esm";
-
-let tts = null;
-
-async function initTTS() {
-    tts = new EdgeTTSBrowser();
-    await tts.init();
-}
-
-async function speak() {
-    if (!tts) return;
-
-    const text = "Привет! Это современный мужской нейросетевой голос Дмитрий.";
-
-    const blob = await tts.ttsToBlob({
-        text,
-        voice: "ru-RU-DmitryNeural"
-    });
-
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
-}
-
-window.onload = initTTS;
-window.speak = speak;
-</script>
+<title>Современный мужской голос</title>
+<script src="https://js.puter.com/v2/"></script>
 
 <style>
 body {
@@ -57,7 +30,14 @@ button {
 <body>
 
 <h1>Нейросетевой мужской голос</h1>
-<button onclick="speak()">Озвучить</button>
+<button id="speakBtn">Озвучить</button>
+
+<script>
+document.getElementById("speakBtn").onclick = async () => {
+    const audio = await puter.ai.tts("Привет! Это современный мужской голос.");
+    new Audio(audio.url).play();
+};
+</script>
 
 </body>
 </html>
